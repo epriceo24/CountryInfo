@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import random
 import pandas as pd
-import numpy as np
+import plotly.express as px
 
 # Function to fetch country information from Wikipedia API
 def fetch_country_info(country_name):
@@ -43,7 +43,7 @@ def get_country_population(country_name):
     url = f"https://restcountries.com/v3.1/name/{country_name}"
     response = requests.get(url)
     data = response.json()
-    
+
     if 'population' in data[0]:
         return data[0]['population']
     else:
@@ -82,6 +82,14 @@ def get_city_coordinates(city_name, country_name):
         return (float(data[0]["lat"]), float(data[0]["lon"]))
     else:
         return None
+
+def get_top_5_countries():
+    url = "https://restcountries.com/v3.1/all"
+    response = requests.get(url)
+    data = response.json()
+    df = pd.DataFrame(data)
+    df = df.nlargest(5, ['population'])
+    return df
 
 # Main function to run the app
 def main():
@@ -130,7 +138,7 @@ def main():
     
     # Display the coordinates of the capital
     coordinates = get_city_coordinates(capital, country_name=selected_country)
-    st.write(f"Coordinates of {capital}: {coordinates}")
+    #display bar chart
 
     df = pd.DataFrame({
         "col1": [coordinates[0]],
@@ -139,6 +147,16 @@ def main():
     })
 
     st.map(df, latitude='col1', longitude='col2', size='col3')
+
+    st.write("Population by Country")
+     # Get the top 5 countries with the highest population
+    top_5_countries = get_top_5_countries()
+    # Extract country names and populations
+    countries = [country['name']['common'] for index, country in top_5_countries.iterrows()]
+    populations = top_5_countries['population'].values
+    # Display donut chart
+    chart = px.pie(top_5_countries, values='population', names=countries, title='Top 5 Countries by Population')
+    st.plotly_chart(chart)
 
 # Run the app
 if __name__ == "__main__":
